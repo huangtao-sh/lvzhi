@@ -6,8 +6,7 @@
 # 创建：2018-02-13
 
 from orange import setup
-
-__version__ = '0.2a2'
+from lzbg.__version__ import version
 
 # 命令行程序入口
 cscripts = [
@@ -19,5 +18,5 @@ setup(
     author='huangtao',
     description='履职报告',
     entry_points={'console_scripts': cscripts, },
-    version=__version__,
+    version=version,
 )
