@@ -6,6 +6,7 @@
 # 创建：2018/07/20
 
 from orange import Path
+from .sqlite import begin_tran
 path = Path('D:/履职报告')
 
 delete_sql = '''
@@ -39,11 +40,12 @@ create table if not exists branch
 '''
 
 
-def init(db, force=False):
+def init(force=False):
     if not path:
         path.ensure()
         print('创建目录：%s' % path)
     script = create_sql
     if force:
         script = delete_sql+script
-    db.executescript(script)
+    with begin_tran() as db:
+        db.executescript(script)

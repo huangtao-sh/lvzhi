@@ -5,11 +5,18 @@
 # Email:huangtao.sh@icloud.com
 # 创建：2018/07/20
 
-from orange import Path, R, arg, cstr
+from orange import Path, R, arg, cstr, datetime, now
 from .db import path, init
 from collections import defaultdict
-from .sqlite import begin_tran
+from .sqlite import begin_tran, db_config
 import json
+
+
+def get_qc(qc=None):
+    qc = qc or (now().add(months=-1)) % ('%Y-%m')
+    begin_date = datetime(qc + '-25')
+    end_date = begin_date.add(months=1)
+    return begin_date % '%F', end_date % '%F'
 
 
 def load_file(db):
@@ -50,27 +57,28 @@ def do_report(db):
     d = db.execute(
         'select bgrq from report order by bgrq desc limit 1').fetchone()
     if d:
-        qc = d[0][:7]
+        qc = datetime(d[0]).add(months=-1) % '%Y-%m'
         print('当前期次：%s' % (qc))
     else:
         print('无数据记录')
     print('报送数据错误清单')
     print('-'*30)
     sql = '''select jg,count(bgr) as count,group_concat(bgr)as names
-    from report where substr(bgrq,1,7)=? 
+    from report where bgrq between ? and ?
     group by jg
     having count>1 order by jg'''
-    db.execute(sql, [qc])
+    db.execute(sql, get_qc(qc))
     for no, (jg, count, names) in enumerate(db, 1):
         print(no, cstr(jg, 30), names, sep='\t')
     print(f'共计：{no}')
     print('\n未报送机构清单')
     print('-'*30)
     sql = '''select rowid,br,name from branch 
-    where br not in (select jg from report where substr(bgrq,1,7)=?) 
+    where br not in (select jg from report where bgrq between ? and ?) 
+    and name not in (select name from report where bgrq between ? and ?)
     order by br'''
     no = 0
-    db.execute(sql, [qc])
+    db.execute(sql, get_qc(qc)*2)
     for no, (rowid, br, name) in enumerate(db, 1):
         print(no, cstr("%03d-%s" % (rowid, br), 35), name, sep='\t')
     print(f'共计：{no}')
@@ -82,10 +90,13 @@ def do_report(db):
 @arg('-r', '--report', action='store_true', help='报告上报情况')
 @arg('-f', '--force', action='store_true', help='强制初始化')
 @arg('-s', '--show', action='store_true', help='显示')
-def main(init_=False, loadfile=False, branchs=None, report=False, force=False, show=False):
-    with begin_tran(str(path/'lzbg.db'))as db:
-        if init_:
-            init(db, force=force)
+@arg('-e', '--export', nargs="?", metavar='export_qc', default='NOSET', dest='export_qc', help='导出一览表')
+def main(init_=False, loadfile=False, branchs=None, report=False, force=False, show=False,
+         export_qc=None):
+    db_config(str(path/'lzbg.db'))
+    if init_:
+        init(force=force)
+    with begin_tran()as db:
         if loadfile:
             load_file(db)
         if branchs:
@@ -100,6 +111,11 @@ def main(init_=False, loadfile=False, branchs=None, report=False, force=False, s
             for jg, bgr, nr in db:
                 print(jg, bgr)
                 print(json.loads(nr))
+        if export_qc != "NOSET":
+            qc = get_qc(export_qc)
+            print(f'期次：{qc[0][:7]}')
+            print(f'日期区间：{qc[0]}  {qc[1]}')
+
 
 
 if __name__ == '__main__':
