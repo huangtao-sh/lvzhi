@@ -112,10 +112,8 @@ def main(init_=False, loadfile=False, branchs=None, report=False, force=False, s
                 print(jg, bgr)
                 print(json.loads(nr))
         if export_qc != "NOSET":
-            qc = get_qc(export_qc)
-            print(f'期次：{qc[0][:7]}')
-            print(f'日期区间：{qc[0]}  {qc[1]}')
-
+            from .report import export_ylb
+            export_ylb(export_qc)
 
 
 if __name__ == '__main__':

@@ -33,14 +33,22 @@ SBFORMAT = [
 ]
 
 
-def export_ylb(fn=None):
-    qc = LzBaogao.cur_qc()
-    fn = path / '2报告一览表'/('营业主管履职报告一览表（%s）.xlsx' % (qc))
+def export_ylb(qc=None, fn=None):
+    from .lzbg import get_qc
+    date = get_qc(qc)
+    qc = date[0][:7]
+    print(f'期次    ：{qc}')
+    print(f'日期区间：{date[0]} - {date[1]}')
+    ylb_path = path / '一览表'
+    ylb_path.ensure()
+    fn = ylb_path / ('营业主管履职报告一览表（%s）.xlsx' % (qc))
 
     if fn.exists():
         s = input('%s 已存在，是否覆盖，Y or N?\n' % (fn.name))
         if s.upper() != 'Y':
             return
+    print(f'生成文件：{fn}')
+    return
     wt_data, zh_data, sb_data = [], [], []
     for obj in LzBaogao.objects(P.qc == qc):
         for k in obj.nr:
