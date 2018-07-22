@@ -81,10 +81,14 @@ WTFORMAT = [
     {'header': '答复意见', 'width': 47.38, 'format': 'wrap'}]
 
 
-def export_wt(yyb=True, fn=None):
-    yf = LzBaogao.cur_qc()
-    print('当前月份：%s' % (yf))
-    fn = path / '3处理问题' / ('营业主管履职报告（%s）·.xlsx' % (yf))
+def export_wt(fn=None):
+    ylb_path = path / '一览表'
+    filename = max(ylb_path.glob('营业主管履职报告一览表*.xlsx'))
+    print(f'正在处理文件：{filename}')
+    wt_path = path / '处理问题'
+    return
+    wt_path.ensure()
+    fn = wt_path / ('营业主管履职报告（%s）·.xlsx' % (yf))
     data = list(LzWenTi.objects(yf=yf).order_by('bm', 'wtfl', 'dfr').scalar(
         'wtfl', 'jg', 'jtnr', 'bgr', 'dfr', 'dfyj'))
     with fn.write_xlsx(formats=FORMATS) as book:

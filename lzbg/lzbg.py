@@ -97,12 +97,16 @@ def do_report(db):
 @arg('-r', '--report', action='store_true', help='报告上报情况')
 @arg('-f', '--force', action='store_true', help='强制初始化')
 @arg('-s', '--show', action='store_true', help='显示')
+@arg('-w', '--wenti', action='store_true', help='收集问题')
 @arg('-e', '--export', nargs="?", metavar='export_qc', default='NOSET', dest='export_qc', help='导出一览表')
 def main(init_=False, loadfile=False, branchs=None, report=False, force=False, show=False,
-         export_qc=None):
+         export_qc=None, wenti=False):
     db_config(str(path/'lzbg.db'))
     if init_:
         init(force=force)
+    if wenti:
+        from .report import export_wt
+        export_wt()
     with begin_tran()as db:
         if loadfile:
             load_file(db)
