@@ -27,7 +27,8 @@ def load_file(db):
         filename = max(files)
         print('当前导入文件：%s' % (filename))
         data = []
-        for idx, name, rows in filename.iter_sheets():
+        for rows in filename.iter_sheets():
+            rows = rows[-1]
             if len(rows) < 1:
                 continue
             title = None
@@ -61,6 +62,12 @@ def do_report(db):
         print('当前期次：%s' % (qc))
     else:
         print('无数据记录')
+
+    db.execute(
+        'select count(jg) as count from report where bgrq between ? and ?', get_qc(qc))
+    d = db.fetchone()
+    if d:
+        print(f'报告数量：{d[0]}')
     print('报送数据错误清单')
     print('-'*30)
     sql = '''select jg,count(bgr) as count,group_concat(bgr)as names
@@ -113,7 +120,7 @@ def main(init_=False, loadfile=False, branchs=None, report=False, force=False, s
                 print(json.loads(nr))
         if export_qc != "NOSET":
             from .report import export_ylb
-            export_ylb(export_qc)
+            export_ylb(db, export_qc)
 
 
 if __name__ == '__main__':

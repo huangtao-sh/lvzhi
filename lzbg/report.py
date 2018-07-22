@@ -8,6 +8,7 @@
 from .db import path
 from orange import Path
 from glemon import P
+import json
 
 FORMATS = {       # 预定义格式
     'h1': {'font_name': '黑体', 'text_wrap': True, 'font_size': 18,
@@ -33,7 +34,7 @@ SBFORMAT = [
 ]
 
 
-def export_ylb(qc=None, fn=None):
+def export_ylb(db, qc=None, fn=None):
     from .lzbg import get_qc
     date = get_qc(qc)
     qc = date[0][:7]
@@ -48,19 +49,18 @@ def export_ylb(qc=None, fn=None):
         if s.upper() != 'Y':
             return
     print(f'生成文件：{fn}')
-    return
     wt_data, zh_data, sb_data = [], [], []
-    for obj in LzBaogao.objects(P.qc == qc):
-        for k in obj.nr:
-            if (('建议' in k['zl'])or('问题'in k['zl']))and(len(k['nr']) >= 10):
-                wt_data.append(('%s%s' % (obj.br, obj.dept),
-                                obj.name,  k['nr'], None))
-        if obj.zhjj and (len(obj.zhjj) > 5):
-            zh_data.append(('%s%s' % (obj.br, obj.dept),
-                            obj.name, obj.zhjj, None))
-        if obj.err_devs or obj.dev_errs:
-            sb_data.append(('%s%s' % (obj.br, obj.dept),
-                            obj.name, obj.err_devs, obj.dev_errs))
+    db.execute(
+        'select jg,bgr,zhjj,sbmc,ycnr,nr from report where bgrq between ? and ?', date)
+    for jg, bgr, zhjj, sbmc, ycnr, nr in db:
+        for zl, zyx, nr in json.loads(nr):
+            if any(x in zl for x in ('建议', '问题')) and len(nr) >= 10:
+                wt_data.append((jg, bgr, nr, None))
+        if len(zhjj) > 5:
+            zh_data.append((jg, bgr, zhjj, None))
+        if sbmc or ycnr:
+            sb_data.append((jg, bgr, sbmc, ycnr))
+
     fn.write_tables(
         {'sheet': '问题及建议', 'columns': YLBFORMAT, 'data': wt_data},
         {'sheet': '需总行解决问题', 'columns': YLBFORMAT, 'data': zh_data},
