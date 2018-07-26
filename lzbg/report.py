@@ -6,7 +6,7 @@
 # 创建：2018-05-25 20:48
 
 from .db import path
-from orange import Path
+from orange import Path, extract
 from glemon import P
 import json
 
@@ -86,9 +86,18 @@ def export_wt(fn=None):
     filename = max(ylb_path.glob('营业主管履职报告一览表*.xlsx'))
     print(f'正在处理文件：{filename}')
     wt_path = path / '处理问题'
-    return
     wt_path.ensure()
-    fn = wt_path / ('营业主管履职报告（%s）·.xlsx' % (yf))
+    qici = extract(filename.pname, r'\d{4}-\d{2}')
+    print(qici)
+    fn = wt_path / ('营业主管履职报告（%s）·.xlsx' % (qici))
+    datas=[]
+    for idx, name, data in filename.iter_sheets():
+        if name in ('问题及建议','需总行解决问题'):
+            datas.extend(data[1:])
+    
+    for row in datas:
+        print(*row)
+    return
     data = list(LzWenTi.objects(yf=yf).order_by('bm', 'wtfl', 'dfr').scalar(
         'wtfl', 'jg', 'jtnr', 'bgr', 'dfr', 'dfyj'))
     with fn.write_xlsx(formats=FORMATS) as book:
