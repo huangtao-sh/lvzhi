@@ -26,6 +26,29 @@ def fetch_period(db)-> str:
     return d[0]
 
 
+def delete_branchs(db, brs):
+    period=fetch_period(db)
+    branchs,ids=set(),set()
+    Number=R / r'\d{1,4}'
+    for br in brs:
+        if Number==br:
+            ids.add(br)
+        else:
+            branchs.add(br)
+    brs=",".join([f'"{x}"' for x in branchs])
+    ids=",".join(ids)
+    sql = f'''select rowid,br from branch where (rowid in ({ids}) or br in ({brs}))
+    and br not in (select br from report where period =?) order by br'''
+    print('以下机构将被删除：')
+    db.execute(sql,[period])
+    ids=set()
+    for row in db:
+        print(*row)
+        ids.add(str(row[0]))
+    ids=",".join(ids)
+    sql=f'delete from branch where rowid in ({ids})'
+    db.execute(sql)
+    
 def load_file(db):
     files = path.glob('会计履职报告*.xls')
     if not files:
@@ -99,7 +122,7 @@ def do_report(db):
 @arg('-r', '--report', action='store_true', help='报告上报情况')
 @arg('-f', '--force', action='store_true', help='强制初始化')
 @arg('-w', '--wenti', action='store_true', help='收集问题')
-@arg('-e', '--export', nargs="?", metavar='qici', default='NOSET', dest='export_qc', help='导出一览表')
+@arg('-e', '--export', nargs="?", metavar='period', default='NOSET', dest='export_qc', help='导出一览表')
 def main(init_=False, loadfile=False, branchs=None, report=False, force=False,
          export_qc=None, wenti=False):
     db_config(str(path/'lzbg.db'))
@@ -112,9 +135,7 @@ def main(init_=False, loadfile=False, branchs=None, report=False, force=False,
         if loadfile:
             load_file(db)
         if branchs:
-            branchs = [(branch, branch)for branch in branchs]
-            db.executemany('delete from branch where br=? or rowid=?', branchs)
-            print('删除机构成功')
+            delete_branchs(db, branchs)
         if report:
             do_report(db)
         if export_qc != "NOSET":
