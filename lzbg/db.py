@@ -4,6 +4,7 @@
 # License:GPL
 # Email:huangtao.sh@icloud.com
 # 创建：2018/07/20
+# 修订：2018/07/29 调整数据表结构中的字段名称，增加 period 字段 
 
 from orange import Path
 from .sqlite import begin_tran
@@ -17,11 +18,12 @@ drop table if exists branch;
 create_sql = '''
 create table if not exists report(
     title text primary key,
-    bgr text,
-    jg text,
-    bgrq text,
-    cs text,
-    fj text,
+    period text,
+    name text,
+    br text,
+    date text,
+    cc text,
+    attachment text,
     yxqk text,
     sbmc text,
     ycnr text,
@@ -30,7 +32,7 @@ create table if not exists report(
     zhjj text,
     shryj text,
     fzryj text,
-    nr text
+    content text
 );
 create table if not exists branch
 (

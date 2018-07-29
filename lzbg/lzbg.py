@@ -4,6 +4,7 @@
 # License:GPL
 # Email:huangtao.sh@icloud.com
 # 创建：2018/07/20
+# 修订：2018/07/29 程序调整
 
 from orange import Path, R, arg, cstr, datetime, now
 from .db import path, init
@@ -12,11 +13,17 @@ from .sqlite import begin_tran, db_config
 import json
 
 
-def get_qc(qc=None):
-    qc = qc or (now().add(months=-1)) % ('%Y-%m')
-    begin_date = datetime(qc + '-25')
-    end_date = begin_date.add(months=1)
-    return begin_date % '%F', end_date % '%F'
+def _get_period(date: str)->str:
+    date = datetime(date).add(days=-25)
+    return date % ('%Y-%m')
+
+
+def fetch_period(db)-> str:
+    sql = 'select period from report order by date desc limit 1'
+    d = db.execute(sql).fetchone()
+    if not d:
+        raise Exception('无数据记录')
+    return d[0]
 
 
 def load_file(db):
@@ -37,7 +44,7 @@ def load_file(db):
                     if title != row[0]:
                         title = row[0]
                         nr = [row[18:]]
-                        data.append([title, row[2], row[4]+row[3], row[5],
+                        data.append([title, _get_period(row[5]), row[2], row[4]+row[3], row[5],
                                      row[6], row[7], row[8], row[10], row[11], row[12], row[13], row[14],
                                      row[16], row[17], nr])
                     else:
@@ -45,9 +52,9 @@ def load_file(db):
         data2 = []
         for r in data:
             r[-1] = json.dumps(r[-1])
-            data2.append((r[2], r[1]))
+            data2.append((r[3], r[2]))
 
-    sql = f'insert or ignore into report values({",".join(["?"]*15)})'
+    sql = f'insert or ignore into report values({",".join(["?"]*16)})'
     db.executemany(sql, data)
     sql = 'insert or ignore into branch values(?,?)'
     db.executemany(sql, data2)
@@ -55,37 +62,32 @@ def load_file(db):
 
 
 def do_report(db):
-    d = db.execute(
-        'select bgrq from report order by bgrq desc limit 1').fetchone()
-    if d:
-        qc = datetime(d[0]).add(months=-1) % '%Y-%m'
-        print('当前期次：%s' % (qc))
-    else:
-        print('无数据记录')
+    period = fetch_period(db)
+    print('当前期次：%s' % (period))
 
     db.execute(
-        'select count(jg) as count from report where bgrq between ? and ?', get_qc(qc))
+        'select count(br) as count from report where period=?', [period])
     d = db.fetchone()
     if d:
         print(f'报告数量：{d[0]}')
     print('报送数据错误清单')
     print('-'*30)
-    sql = '''select jg,count(bgr) as count,group_concat(bgr)as names
-    from report where bgrq between ? and ?
-    group by jg
-    having count>1 order by jg'''
-    db.execute(sql, get_qc(qc))
+    sql = '''select br,count(name) as count,group_concat(name)as names
+    from report where period= ?
+    group by br
+    having count>1 order by br'''
+    db.execute(sql, [period])
     for no, (jg, count, names) in enumerate(db, 1):
         print(no, cstr(jg, 30), names, sep='\t')
     print(f'共计：{no}')
     print('\n未报送机构清单')
     print('-'*30)
     sql = '''select rowid,br,name from branch 
-    where br not in (select jg from report where bgrq between ? and ?) 
-    and name not in (select name from report where bgrq between ? and ?)
+    where br not in (select br from report where period=?) 
+    and name not in (select name from report where period=?)
     order by br'''
     no = 0
-    db.execute(sql, get_qc(qc)*2)
+    db.execute(sql, [period, period])
     for no, (rowid, br, name) in enumerate(db, 1):
         print(no, cstr("%03d-%s" % (rowid, br), 35), name, sep='\t')
     print(f'共计：{no}')
@@ -116,12 +118,7 @@ def main(init_=False, loadfile=False, branchs=None, report=False, force=False, s
             print('删除机构成功')
         if report:
             do_report(db)
-        if show:
-            sql = 'select jg,bgr,nr from report limit 1'
-            db.execute(sql)
-            for jg, bgr, nr in db:
-                print(jg, bgr)
-                print(json.loads(nr))
+
         if export_qc != "NOSET":
             from .report import export_ylb
             export_ylb(db, export_qc)

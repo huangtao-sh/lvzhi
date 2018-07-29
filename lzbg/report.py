@@ -4,6 +4,7 @@
 # License:GPL
 # Email:huangtao.sh@icloud.com
 # 创建：2018-05-25 20:48
+# 修改：2018-07-29 增加问题转换功能
 
 from .db import path
 from orange import Path, extract
@@ -35,11 +36,9 @@ SBFORMAT = [
 
 
 def export_ylb(db, qc=None, fn=None):
-    from .lzbg import get_qc
-    date = get_qc(qc)
-    qc = date[0][:7]
+    from .lzbg import fetch_period
+    qc = qc or fetch_period(db)
     print(f'期次    ：{qc}')
-    print(f'日期区间：{date[0]} - {date[1]}')
     ylb_path = path / '一览表'
     ylb_path.ensure()
     fn = ylb_path / ('营业主管履职报告一览表（%s）.xlsx' % (qc))
@@ -51,15 +50,15 @@ def export_ylb(db, qc=None, fn=None):
     print(f'生成文件：{fn}')
     wt_data, zh_data, sb_data = [], [], []
     db.execute(
-        'select jg,bgr,zhjj,sbmc,ycnr,nr from report where bgrq between ? and ?', date)
-    for jg, bgr, zhjj, sbmc, ycnr, nr in db:
-        for zl, zyx, nr in json.loads(nr):
-            if any(x in zl for x in ('建议', '问题')) and len(nr) >= 10:
-                wt_data.append((jg, bgr, nr, None))
+        'select br,name,zhjj,sbmc,ycnr,content from report where period=?', [qc])
+    for br, name, zhjj, sbmc, ycnr, content in db:
+        for zl, zyx, content in json.loads(content):
+            if any(x in zl for x in ('建议', '问题')) and len(content) >= 10:
+                wt_data.append((br, name, content, None))
         if len(zhjj) > 5:
-            zh_data.append((jg, bgr, zhjj, None))
+            zh_data.append((br, name, zhjj, None))
         if sbmc or ycnr:
-            sb_data.append((jg, bgr, sbmc, ycnr))
+            sb_data.append((br, name, sbmc, ycnr))
 
     fn.write_tables(
         {'sheet': '问题及建议', 'columns': YLBFORMAT, 'data': wt_data},
@@ -89,22 +88,20 @@ def export_wt(fn=None):
     wt_path.ensure()
     qici = extract(filename.pname, r'\d{4}-\d{2}')
     print(qici)
-    fn = wt_path / ('营业主管履职报告（%s）·.xlsx' % (qici))
-    datas=[]
+    fn = wt_path / ('营业主管履职报告（%s）.xlsx' % (qici))
+    datas = []
     for idx, name, data in filename.iter_sheets():
-        if name in ('问题及建议','需总行解决问题'):
-            datas.extend(data[1:])
-    
-    for row in datas:
-        print(*row)
-    return
-    data = list(LzWenTi.objects(yf=yf).order_by('bm', 'wtfl', 'dfr').scalar(
-        'wtfl', 'jg', 'jtnr', 'bgr', 'dfr', 'dfyj'))
+        if name in ('问题及建议', '需总行解决问题'):
+            for br, name, nr, wts in data[1:]:
+                if wts:
+                    for wt in wts.split('\n\n'):
+                        datas.append((None, br, wt, name, None, None))
+
     with fn.write_xlsx(formats=FORMATS) as book:
         book.worksheet = '运营管理部'
-        book.A1_F1 = '营业主管履职报告重点问题（%s）' % (yf), "h1"
-        book.add_table("A2", columns=WTFORMAT, data=data)
-        print('共导出%d条数据' % (len(data)))
+        book.A1_F1 = '营业主管履职报告重点问题（%s）' % (qici), "h1"
+        book.add_table("A2", columns=WTFORMAT, data=datas)
+        print('共导出%d条数据' % (len(datas)))
 
 
 PUBLISH_FORMAT = {
