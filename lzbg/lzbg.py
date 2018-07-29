@@ -98,10 +98,9 @@ def do_report(db):
 @arg('-d', '--delete', metavar='branch', dest='branchs', nargs='*', help='删除机构')
 @arg('-r', '--report', action='store_true', help='报告上报情况')
 @arg('-f', '--force', action='store_true', help='强制初始化')
-@arg('-s', '--show', action='store_true', help='显示')
 @arg('-w', '--wenti', action='store_true', help='收集问题')
 @arg('-e', '--export', nargs="?", metavar='qici', default='NOSET', dest='export_qc', help='导出一览表')
-def main(init_=False, loadfile=False, branchs=None, report=False, force=False, show=False,
+def main(init_=False, loadfile=False, branchs=None, report=False, force=False,
          export_qc=None, wenti=False):
     db_config(str(path/'lzbg.db'))
     if init_:
@@ -118,7 +117,6 @@ def main(init_=False, loadfile=False, branchs=None, report=False, force=False, s
             print('删除机构成功')
         if report:
             do_report(db)
-
         if export_qc != "NOSET":
             from .report import export_ylb
             export_ylb(db, export_qc)
