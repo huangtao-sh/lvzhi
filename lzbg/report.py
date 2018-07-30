@@ -8,7 +8,6 @@
 
 from .db import path
 from orange import Path, extract
-from glemon import P
 import json
 
 FORMATS = {       # 预定义格式
