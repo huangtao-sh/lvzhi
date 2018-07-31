@@ -140,18 +140,16 @@ def main(init_=False, loadfile=False, branchs=None, report=False, force=False,
         if export_qc != "NOSET":
             from .report import export_ylb
             export_ylb(export_qc)
+        if show:
+            from .db import init_fhlz
+            init_fhlz(True)
+            execute('insert into brorder values(?,?,?)',['深圳分行',23,False])
+            d=findone('select * from brorder where state=?',[False])
+            print(*d)
     if wenti:
         from .report import export_wt
         export_wt()
-    if show:
-        from pkgutil import get_data
-        from orange import decode
-
-        def get_text(pkg: str, filename: str)->str:
-            data = get_data(pkg, filename)
-            return decode(data)
-
-        print(get_text('lzbg', 'sql/delete.sql'))
+    
 
 
 if __name__ == '__main__':
