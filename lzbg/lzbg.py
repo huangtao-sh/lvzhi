@@ -7,10 +7,13 @@
 # 修订：2018/07/29 程序调整
 
 from orange import Path, R, arg, cstr, datetime, now
-from .db import path, init
-from collections import defaultdict
-from orange.sqlite import connect, execute, executemany, find, findone, executescript, db_config
+from orange.sqlite import connect, execute, executemany, find, findone, \
+    executescript, db_config
 import json
+
+ROOT = Path('~/履职报告')
+if not ROOT:
+    ROOT.ensure()
 
 
 def _get_period(date: str)->str:
@@ -50,7 +53,7 @@ def delete_branchs(brs):
 
 
 def load_file():
-    files = path.glob('会计履职报告*.xls')
+    files = ROOT.glob('会计履职报告*.xls')
     if not files:
         print('当前目录无文件')
     else:
@@ -122,13 +125,11 @@ def do_report():
 @arg('-e', '--export', nargs="?", metavar='period', default='NOSET', dest='export_qc', help='导出一览表')
 def main(init_=False, loadfile=False, branchs=None, report=False, force=False,
          export_qc=None, wenti=False):
-    db_config(str(path/'lzbg.db'))
-    if init_:
-        init(force=force)
-    if wenti:
-        from .report import export_wt
-        export_wt()
+    db_config(str(ROOT/'lzbg'))
     with connect():
+        if init_:
+            from .db import init
+            init(force=force)
         if loadfile:
             load_file()
         if branchs:
@@ -138,6 +139,9 @@ def main(init_=False, loadfile=False, branchs=None, report=False, force=False,
         if export_qc != "NOSET":
             from .report import export_ylb
             export_ylb(export_qc)
+    if wenti:
+        from .report import export_wt
+        export_wt()
 
 
 if __name__ == '__main__':

@@ -4,11 +4,9 @@
 # License:GPL
 # Email:huangtao.sh@icloud.com
 # 创建：2018/07/20
-# 修订：2018/07/29 调整数据表结构中的字段名称，增加 period 字段 
+# 修订：2018/07/29 调整数据表结构中的字段名称，增加 period 字段
 
-from orange import Path
-from orange.sqlite import connect,executescript
-path = Path('~/履职报告')
+from orange.sqlite import executescript
 
 delete_sql = '''
 drop table if exists report;
@@ -43,11 +41,7 @@ create table if not exists branch
 
 
 def init(force=False):
-    if not path:
-        path.ensure()
-        print('创建目录：%s' % path)
     script = create_sql
     if force:
         script = delete_sql+script
-    with connect() :
-        executescript(script)
+    executescript(script)

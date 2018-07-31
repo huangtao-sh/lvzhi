@@ -6,7 +6,7 @@
 # 创建：2018-05-25 20:48
 # 修改：2018-07-29 增加问题转换功能
 
-from .db import path
+from .lzbg import ROOT
 from orange import Path, extract
 import json
 from orange.sqlite import find, findone
@@ -39,7 +39,7 @@ def export_ylb(qc=None, fn=None):
     from .lzbg import fetch_period
     qc = qc or fetch_period()
     print(f'期次    ：{qc}')
-    ylb_path = path / '一览表'
+    ylb_path = ROOT / '一览表'
     ylb_path.ensure()
     fn = ylb_path / ('营业主管履职报告一览表（%s）.xlsx' % (qc))
 
@@ -49,8 +49,7 @@ def export_ylb(qc=None, fn=None):
             return
     print(f'生成文件：{fn}')
     wt_data, zh_data, sb_data = [], [], []
-    db=find(
-        'select br,name,zhjj,sbmc,ycnr,content from report where period=?', [qc])
+    db=find('select br,name,zhjj,sbmc,ycnr,content from report where period=?', [qc])
     for br, name, zhjj, sbmc, ycnr, content in db:
         for zl, zyx, content in json.loads(content):
             if any(x in zl for x in ('建议', '问题')) and len(content) >= 10:
@@ -81,10 +80,10 @@ WTFORMAT = [
 
 
 def export_wt(fn=None):
-    ylb_path = path / '一览表'
+    ylb_path = ROOT / '一览表'
     filename = max(ylb_path.glob('营业主管履职报告一览表*.xlsx'))
     print(f'正在处理文件：{filename}')
-    wt_path = path / '处理问题'
+    wt_path = ROOT / '处理问题'
     wt_path.ensure()
     qici = extract(filename.pname, r'\d{4}-\d{2}')
     print(qici)
