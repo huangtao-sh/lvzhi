@@ -9,7 +9,7 @@
 from orange import Path, R, arg, cstr, datetime, now
 from .db import path, init
 from collections import defaultdict
-from .sqlite import begin_tran, db_config
+from orange.sqlite import connect, execute, executemany, find, findone, executescript, db_config
 import json
 
 
@@ -18,38 +18,38 @@ def _get_period(date: str)->str:
     return date % ('%Y-%m')
 
 
-def fetch_period(db)-> str:
+def fetch_period()-> str:
     sql = 'select period from report order by date desc limit 1'
-    d = db.execute(sql).fetchone()
+    d = findone(sql)
     if not d:
         raise Exception('无数据记录')
     return d[0]
 
 
-def delete_branchs(db, brs):
-    period=fetch_period(db)
-    branchs,ids=set(),set()
-    Number=R / r'\d{1,4}'
+def delete_branchs(brs):
+    period = fetch_period()
+    branchs, ids = set(), set()
+    Number = R / r'\d{1,4}'
     for br in brs:
-        if Number==br:
+        if Number == br:
             ids.add(br)
         else:
             branchs.add(br)
-    brs=",".join([f'"{x}"' for x in branchs])
-    ids=",".join(ids)
+    brs = ",".join([f'"{x}"' for x in branchs])
+    ids = ",".join(ids)
     sql = f'''select rowid,br from branch where (rowid in ({ids}) or br in ({brs}))
     and br not in (select br from report where period =?) order by br'''
     print('以下机构将被删除：')
-    db.execute(sql,[period])
-    ids=set()
-    for row in db:
+    ids = set()
+    for row in find(sql, [period]):
         print(*row)
         ids.add(str(row[0]))
-    ids=",".join(ids)
-    sql=f'delete from branch where rowid in ({ids})'
-    db.execute(sql)
-    
-def load_file(db):
+    ids = ",".join(ids)
+    sql = f'delete from branch where rowid in ({ids})'
+    execute(sql)
+
+
+def load_file():
     files = path.glob('会计履职报告*.xls')
     if not files:
         print('当前目录无文件')
@@ -78,19 +78,18 @@ def load_file(db):
             data2.append((r[3], r[2]))
 
     sql = f'insert or ignore into report values({",".join(["?"]*16)})'
-    db.executemany(sql, data)
+    executemany(sql, data)
     sql = 'insert or ignore into branch values(?,?)'
-    db.executemany(sql, data2)
+    executemany(sql, data2)
     print('已处理数据：%d' % (len(data)))
 
 
-def do_report(db):
-    period = fetch_period(db)
+def do_report():
+    period = fetch_period()
     print('当前期次：%s' % (period))
 
-    db.execute(
+    d = findone(
         'select count(br) as count from report where period=?', [period])
-    d = db.fetchone()
     if d:
         print(f'报告数量：{d[0]}')
     print('报送数据错误清单')
@@ -99,8 +98,7 @@ def do_report(db):
     from report where period= ?
     group by br
     having count>1 order by br'''
-    db.execute(sql, [period])
-    for no, (jg, count, names) in enumerate(db, 1):
+    for no, (jg, count, names) in enumerate(find(sql, [period]), 1):
         print(no, cstr(jg, 30), names, sep='\t')
     print(f'共计：{no}')
     print('\n未报送机构清单')
@@ -110,8 +108,7 @@ def do_report(db):
     and name not in (select name from report where period=?)
     order by br'''
     no = 0
-    db.execute(sql, [period, period])
-    for no, (rowid, br, name) in enumerate(db, 1):
+    for no, (rowid, br, name) in enumerate(find(sql, [period, period]), 1):
         print(no, cstr("%03d-%s" % (rowid, br), 35), name, sep='\t')
     print(f'共计：{no}')
 
@@ -131,16 +128,16 @@ def main(init_=False, loadfile=False, branchs=None, report=False, force=False,
     if wenti:
         from .report import export_wt
         export_wt()
-    with begin_tran()as db:
+    with connect()as db:
         if loadfile:
-            load_file(db)
+            load_file()
         if branchs:
-            delete_branchs(db, branchs)
+            delete_branchs(branchs)
         if report:
-            do_report(db)
+            do_report()
         if export_qc != "NOSET":
             from .report import export_ylb
-            export_ylb(db, export_qc)
+            export_ylb(export_qc)
 
 
 if __name__ == '__main__':

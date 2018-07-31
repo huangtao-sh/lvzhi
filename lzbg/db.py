@@ -7,8 +7,8 @@
 # 修订：2018/07/29 调整数据表结构中的字段名称，增加 period 字段 
 
 from orange import Path
-from .sqlite import begin_tran
-path = Path('D:/履职报告')
+from orange.sqlite import connect,executescript
+path = Path('~/履职报告')
 
 delete_sql = '''
 drop table if exists report;
@@ -49,5 +49,5 @@ def init(force=False):
     script = create_sql
     if force:
         script = delete_sql+script
-    with begin_tran() as db:
-        db.executescript(script)
+    with connect() :
+        executescript(script)
