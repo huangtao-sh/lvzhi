@@ -5,7 +5,7 @@
 # Email:huangtao.sh@icloud.com
 # 创建：2018-07-29 19:17
 
-from orange.sqlite import db_config, begin_tran, begin_query, execute, executemany, executescript, find, findone
+from orange.sqlite import db_config, execute, executemany, executescript, find, findone
 
 drop_sql = '''
 

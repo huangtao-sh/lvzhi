@@ -128,7 +128,7 @@ def main(init_=False, loadfile=False, branchs=None, report=False, force=False,
     if wenti:
         from .report import export_wt
         export_wt()
-    with connect()as db:
+    with connect():
         if loadfile:
             load_file()
         if branchs:
