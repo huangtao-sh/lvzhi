@@ -29,7 +29,7 @@ def fetch_period()-> str:
     return d[0]
 
 
-def delete_branchs(brs):
+def delete_branchs(brs: list):
     period = fetch_period()
     branchs, ids = set(), set()
     Number = R / r'\d{1,4}'
