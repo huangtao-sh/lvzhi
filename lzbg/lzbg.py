@@ -91,8 +91,8 @@ def do_report():
     period = fetch_period()
     print('当前期次：%s' % (period))
 
-    d = findone(
-        'select count(br) as count from report where period=?', [period])
+    d = findone('select count(br) as count from report where period=?',
+                [period])
     if d:
         print(f'报告数量：{d[0]}')
     print('报送数据错误清单')
@@ -145,4 +145,10 @@ def main(init_=False, loadfile=False, branchs=None, report=False, force=False,
 
 
 if __name__ == '__main__':
-    main()
+    from pkgutil import get_data
+    from orange import decode 
+    def get_text(pkg:str,filename:str)->str:
+        data=get_data('lzbg','sql/delete.sql')
+        return decode(data)
+
+    print(get_text('a','b'))

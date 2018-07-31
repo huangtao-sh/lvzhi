@@ -13,14 +13,5 @@ drop_sql = '''
 '''
 
 create_sql = '''
-create table if not exists fhreport(
-    id text primary key,
-    period text,
-    type text,
-    branch text,
-    name text,
-    date text,
-    content text,
-    update_time int
-);
+
 '''
