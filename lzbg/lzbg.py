@@ -122,9 +122,10 @@ def do_report():
 @arg('-r', '--report', action='store_true', help='报告上报情况')
 @arg('-f', '--force', action='store_true', help='强制初始化')
 @arg('-w', '--wenti', action='store_true', help='收集问题')
+@arg('-s', '--show', action='store_true', help='text')
 @arg('-e', '--export', nargs="?", metavar='period', default='NOSET', dest='export_qc', help='导出一览表')
 def main(init_=False, loadfile=False, branchs=None, report=False, force=False,
-         export_qc=None, wenti=False):
+         export_qc=None, wenti=False, show=False):
     db_config(str(ROOT/'lzbg'))
     with connect():
         if init_:
@@ -142,13 +143,16 @@ def main(init_=False, loadfile=False, branchs=None, report=False, force=False,
     if wenti:
         from .report import export_wt
         export_wt()
+    if show:
+        from pkgutil import get_data
+        from orange import decode
+
+        def get_text(pkg: str, filename: str)->str:
+            data = get_data(pkg, filename)
+            return decode(data)
+
+        print(get_text('lzbg', 'sql/delete.sql'))
 
 
 if __name__ == '__main__':
-    from pkgutil import get_data
-    from orange import decode 
-    def get_text(pkg:str,filename:str)->str:
-        data=get_data('lzbg','sql/delete.sql')
-        return decode(data)
-
-    print(get_text('a','b'))
+    pass

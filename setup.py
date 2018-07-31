@@ -19,4 +19,5 @@ setup(
     description='履职报告',
     entry_points={'console_scripts': cscripts, },
     version=version,
+    package_data={'lzbg': ['sql/*.sql']},
 )
