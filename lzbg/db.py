@@ -49,6 +49,7 @@ def init(force=False):
     executescript(script)
 
 def executefile(*filenames):
+    from pkgutil import get_data
     for filename in filenames:
         data=get_data('lzbg',f'sql/{filename}.sql')
         sql=decode(data)
